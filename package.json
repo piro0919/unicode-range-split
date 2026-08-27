@@ -1,0 +1,84 @@
+{
+  "name": "unicode-range-split",
+  "version": "0.1.0",
+  "description": "Split a font into a common tier and a rare tier with unicode-range, without dropping a single glyph",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "unicode-range-split": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "font",
+    "subset",
+    "unicode-range",
+    "webfont",
+    "woff2",
+    "cjk",
+    "japanese",
+    "performance"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piro0919/unicode-range-split.git"
+  },
+  "funding": "https://github.com/sponsors/piro0919",
+  "bugs": {
+    "url": "https://github.com/piro0919/unicode-range-split/issues"
+  },
+  "author": "piro0919 <piro.haniwa@gmail.com> (https://kkweb.io/)",
+  "packageManager": "pnpm@11.1.2",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "build:lib": "tsup",
+    "demo:font": "pnpm build:lib && node scripts/demo-font.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm test && pnpm build:lib"
+  },
+  "dependencies": {
+    "fontkit": "^2.0.4",
+    "subset-font": "^2.5.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.10",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vercel/analytics": "^2.0.1",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "lefthook": "^2.1.10",
+    "next": "16.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwindcss": "^4.3.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "homepage": "https://unicode-range-split.kkweb.io/"
+}

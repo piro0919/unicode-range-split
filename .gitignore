@@ -1,0 +1,9 @@
+node_modules
+dist
+*.tsbuildinfo
+
+*.tgz
+.next
+next-env.d.ts
+*.tsbuildinfo
+.vercel
