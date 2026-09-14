@@ -194,6 +194,39 @@ describe("splitFont", () => {
     expect(css).not.toContain("descent-override");
   });
 
+  it("writes the fallback descriptors in alphabetical order", async () => {
+    const { css } = await splitFont({
+      alwaysInclude: ALWAYS,
+      fallback: {
+        ascent: "117%",
+        descent: "29.05%",
+        family: "Fixture Fallback",
+        lineGap: "0.0%",
+        local: "Arial",
+        sizeAdjust: "99.15%",
+      },
+      family: "Fixture",
+      format: "sfnt",
+      outDir: await out(),
+      source: SOURCE,
+      text: "abc",
+    });
+
+    const block = css.slice(css.lastIndexOf("@font-face"));
+    const names = [...block.matchAll(/^ {2}([a-z-]+):/gm)].map(
+      ([, name]) => name,
+    );
+
+    expect(names).toEqual([
+      "ascent-override",
+      "descent-override",
+      "font-family",
+      "line-gap-override",
+      "size-adjust",
+      "src",
+    ]);
+  });
+
   it("refuses when the text uses everything, because two files would be worse than one", async () => {
     await expect(
       splitFont({

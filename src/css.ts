@@ -75,16 +75,20 @@ export function buildCss(
  * in front of them.
  */
 export function buildFallbackFace(fallback: FallbackFace): string {
+  /* Alphabetical, because a stylelint config that orders descriptors is common
+     enough that generated CSS failing it lands in the caller's lap. */
   const descriptors = [
     ["ascent-override", fallback.ascent],
     ["descent-override", fallback.descent],
+    ["font-family", `"${fallback.family}"`],
     ["line-gap-override", fallback.lineGap],
     ["size-adjust", fallback.sizeAdjust],
-  ].filter((entry): entry is [string, string] => entry[1] !== undefined);
+    ["src", `local(${fallback.local})`],
+  ]
+    .filter((entry): entry is [string, string] => entry[1] !== undefined)
+    .sort(([a], [b]) => a.localeCompare(b));
 
   return `@font-face {
-  font-family: "${fallback.family}";
 ${descriptors.map(([name, value]) => `  ${name}: ${value};`).join("\n")}
-  src: local(${fallback.local});
 }`;
 }

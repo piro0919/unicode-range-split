@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+### Fixed
+
+- The fallback face's descriptors are written in alphabetical order. A
+  stylelint config that orders descriptors rejected the generated CSS, and a
+  file the caller does not write by hand is a poor place to take that failure.
+
 ## 0.1.0
 
 Initial release.
