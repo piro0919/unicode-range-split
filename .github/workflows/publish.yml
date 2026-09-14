@@ -35,6 +35,9 @@ jobs:
       - run: pnpm test
       - run: pnpm lint
       - run: pnpm build:lib
-      - run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Trusted Publishing は npm 11.5.1 以上が要る。Node 22.23.2 に付いてくるのは
+      # 10.9.8 なので、publish の前に入れ替える。
+      - run: npm install -g npm@latest
+      # トークンは持たない。npmjs.com 側にこのリポジトリとワークフロー名を登録してあり、
+      # 認証は id-token で通る。provenance はそのとき既定で付くので指定しない。
+      - run: npm publish --access public
