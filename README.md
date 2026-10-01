@@ -5,17 +5,20 @@ everything else. No glyph is dropped.
 
 ```js
 // unicode-range-split.config.js
-export default {
+import { defineConfig } from "unicode-range-split";
+
+export default defineConfig({
   fonts: [
     {
       source: "src/fonts/NotoSansJP-400.ttf",
       family: "Noto Sans JP",
+      id: "noto",
       outDir: "public/fonts",
       cssPath: "src/app/noto.css",
       scan: ["src", "content", "messages"],
     },
   ],
-};
+});
 ```
 
 ```bash
@@ -25,8 +28,8 @@ npx unicode-range-split
 ```text
 Noto Sans JP
   common    1193 chars    125 KiB  noto-common.0568b082.woff2
-  rest     15539 chars    2.0 MiB  noto-rest.6bc37b03.woff2
-  every page now fetches 125 KiB instead of 5.5 MiB (98% less)
+  rest     15539 chars   2057 KiB  noto-rest.6bc37b03.woff2
+  every page now fetches 125 KiB instead of 5632 KiB (98% less)
 ```
 
 Ordinary pages fetch the small file. The other one waits behind a
@@ -47,6 +50,18 @@ The split keeps the whole coverage and moves the cost instead. The common tier
 is what every page pays for. The rare tier is a file most visitors never fetch,
 and the ones who do get it once.
 
+## When not to use it
+
+- **A Latin-only font.** The default `alwaysInclude` keeps all of Latin in the
+  common tier, so there is nothing left to defer, and a font that small does
+  not need splitting anyway.
+- **A font that is already served split.** Google Fonts and most font CDNs
+  already slice CJK faces into many `unicode-range` files. Splitting their
+  output again gains nothing.
+- **A site whose text changes faster than it is built.** The common tier is
+  decided by the text it scanned. Text that arrives at runtime — user posts,
+  a CMS read in the browser — lands in the rare tier until the next build.
+
 ## Install
 
 ```bash
@@ -63,6 +78,15 @@ npx unicode-range-split              # finds the config
 npx unicode-range-split fonts.json   # or takes a path
 ```
 
+`defineConfig` returns its argument unchanged; it is there so a `.js` config
+gets the option types in the editor. A JSDoc annotation does the same without
+the import:
+
+```js
+/** @type {import("unicode-range-split").Config} */
+export default { fonts: [/* … */] };
+```
+
 Or describe one font in flags:
 
 ```bash
@@ -73,6 +97,14 @@ npx unicode-range-split \
   --scan src,content \
   --css src/app/noto.css
 ```
+
+An unknown flag or `--format` value is an error, not ignored. A `scan` path that
+does not exist, or a scan that finds no character the font covers, prints a
+warning on stderr and the split carries on.
+
+Two fonts writing to the same `outDir` under the same `id` is an error: each
+run removes its own id's earlier files, so the second would delete the first.
+The `id` defaults to the font's filename, so set it when two sources share one.
 
 ## Use it from a script
 
@@ -90,7 +122,9 @@ tiers.common.url; // "/fonts/NotoSansJP-400-common.1f4a9c2b.woff2"
 tiers.rest.bytes; // the file most visitors never fetch
 ```
 
-`splitFonts([...])` runs several, one after another.
+`splitFonts([...])` runs several, one after another, and refuses two that share
+an `id` in the same `outDir`. `result.scan.missing` lists the scanned paths that
+did not exist; the library skips them without complaint.
 
 ## Options
 
@@ -104,7 +138,7 @@ tiers.rest.bytes; // the file most visitors never fetch
 | `cssPath` | — | write the generated CSS here; it is returned either way |
 | `publicPath` | `"/fonts"` | the URL prefix the CSS points at |
 | `id` | the source's basename | filename prefix |
-| `format` | `"woff2"` | `woff2`, `woff` or `sfnt` |
+| `format` | `"woff2"` | `woff2`, `woff`, `truetype` or `sfnt` (the last two both write `.ttf`) |
 | `hash` | `true` | put a content hash in the filenames |
 | `weight` `style` `display` | `400` `normal` `swap` | the descriptors |
 | `alwaysInclude` | Latin, punctuation, kana, fullwidth | codepoints kept in the common tier whatever the text says |

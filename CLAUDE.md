@@ -18,7 +18,7 @@ arrives in a second file.
   (harfbuzz) as the only runtime dependencies
 - Next.js 16 (App Router) — demo site only
 - Biome (linter/formatter)
-- tsup (library build, ESM + CJS, plus the `bin`)
+- tsup (library build, ESM + CJS with types; the `bin` as ESM only)
 - Vitest — tests
 - Vercel (deployment)
 
@@ -29,6 +29,7 @@ src/
 ├── index.ts        # public API
 ├── split.ts        # the split itself
 ├── collect.ts      # reading characters out of a project's files
+├── config.ts       # the config file's type and defineConfig
 ├── css.ts          # the @font-face rules
 ├── ranges.ts       # always-included codepoints, unicode-range folding
 ├── cli.ts          # argument and config handling
@@ -85,6 +86,7 @@ pnpm test        # vitest
 pnpm typecheck   # tsc --noEmit
 pnpm lint        # biome check
 pnpm build:lib   # tsup -> dist
+pnpm check:package  # publint + attw on the packed tarball (after build:lib)
 pnpm build       # next build (demo site)
 pnpm demo:font   # rebuild the demo font's two tiers
 ```
