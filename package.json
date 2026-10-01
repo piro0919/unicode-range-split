@@ -1,6 +1,6 @@
 {
   "name": "unicode-range-split",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Split a font into a common tier and a rare tier with unicode-range, without dropping a single glyph",
   "type": "module",
   "sideEffects": false,
