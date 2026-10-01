@@ -110,4 +110,109 @@ describe("run", () => {
     expect(await run(["--help"])).toBe(0);
     expect(console.log).toHaveBeenCalled();
   });
+
+  it("rejects an unknown flag instead of ignoring it", async () => {
+    await expect(
+      run([
+        "--source",
+        "face.ttf",
+        "--family",
+        "F",
+        "--out-dir",
+        "out",
+        "--sacn",
+        "src",
+      ]),
+    ).rejects.toThrow(/--sacn/);
+  });
+
+  it("rejects a format subset-font cannot write", async () => {
+    await expect(
+      run([
+        "--source",
+        "face.ttf",
+        "--family",
+        "F",
+        "--out-dir",
+        "out",
+        "--format",
+        "otf",
+      ]),
+    ).rejects.toThrow(/woff2, woff, truetype, sfnt/);
+  });
+
+  it("warns when a scan path does not exist", async () => {
+    expect(
+      await run([
+        "--source",
+        "face.ttf",
+        "--family",
+        "Fixture",
+        "--out-dir",
+        "out",
+        "--format",
+        "sfnt",
+        "--scan",
+        "copy.md,missing",
+        "--text",
+        "abc",
+      ]),
+    ).toBe(0);
+
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("scan path not found: missing"),
+    );
+  });
+
+  it("warns when scanning finds no characters", async () => {
+    expect(
+      await run([
+        "--source",
+        "face.ttf",
+        "--family",
+        "Fixture",
+        "--out-dir",
+        "out",
+        "--format",
+        "sfnt",
+        "--scan",
+        "missing",
+        "--text",
+        "abc",
+      ]),
+    ).toBe(0);
+
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("scanning found no characters"),
+    );
+  });
+
+  it("stays quiet when scanning found what it was asked to", async () => {
+    await run([
+      "--source",
+      "face.ttf",
+      "--family",
+      "Fixture",
+      "--out-dir",
+      "out",
+      "--format",
+      "sfnt",
+      "--scan",
+      "copy.md",
+    ]);
+
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it("refuses two fonts that would write under the same id", async () => {
+    await writeFile(
+      join(root, "unicode-range-split.config.json"),
+      JSON.stringify([
+        { family: "A", outDir: "out", source: "face.ttf", text: "abc" },
+        { family: "B", outDir: "./out", source: "face.ttf", text: "abc" },
+      ]),
+    );
+
+    await expect(run([])).rejects.toThrow(/Give each an "id"/);
+  });
 });

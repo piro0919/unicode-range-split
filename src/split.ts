@@ -1,13 +1,20 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { basename, dirname, extname, join } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import { create as createFont } from "fontkit";
 import subsetFont from "subset-font";
-import { collectText } from "./collect";
+import { collect } from "./collect";
 import { buildCss, type FallbackFace } from "./css";
 import { type AlwaysInclude, toPredicate, toUnicodeRange } from "./ranges";
 
-export type TargetFormat = "sfnt" | "truetype" | "woff" | "woff2";
+/** Output formats `subset-font` can write. `sfnt` and `truetype` both mean a .ttf. */
+export const TARGET_FORMATS = ["woff2", "woff", "truetype", "sfnt"] as const;
+
+export type TargetFormat = (typeof TARGET_FORMATS)[number];
+
+export function isTargetFormat(value: unknown): value is TargetFormat {
+  return (TARGET_FORMATS as readonly unknown[]).includes(value);
+}
 
 const EXTENSION: Record<TargetFormat, string> = {
   sfnt: ".ttf",
@@ -72,9 +79,44 @@ export type SplitFontResult = {
   family: string;
   source: { bytes: number; characters: number };
   tiers: { common: Tier; rest: Tier };
+  /** What `scan` turned up. */
+  scan: {
+    /** Distinct characters the scanned files contributed that the font covers. */
+    characters: number;
+    /** Scanned paths that did not exist and were skipped. */
+    missing: string[];
+  };
   /** The rare tier's `unicode-range` value. */
   unicodeRange: string;
 };
+
+/** The filename prefix a font's output is written under. */
+function fontId(options: SplitFontOptions): string {
+  return options.id ?? basename(options.source, extname(options.source));
+}
+
+/**
+ * Throw when two fonts would write under the same id in the same directory.
+ * Each run cleans its own id's earlier output, so the second would delete the
+ * first one's files.
+ */
+export function assertDistinctIds(fonts: SplitFontOptions[]): void {
+  const seen = new Map<string, string>();
+
+  for (const font of fonts) {
+    const id = fontId(font);
+    const key = `${resolve(font.outDir)}\0${id}`;
+    const earlier = seen.get(key);
+
+    if (earlier !== undefined) {
+      throw new Error(
+        `${earlier} and ${font.source} both write "${id}-common" and "${id}-rest" to ${font.outDir}, so the second would delete the first. Give each an "id".`,
+      );
+    }
+
+    seen.set(key, font.source);
+  }
+}
 
 /** Remove this font's earlier output, leaving anything else in the directory. */
 async function clean(
@@ -121,17 +163,33 @@ export async function splitFont(
     text = "",
     weight = 400,
   } = options;
-  const id = options.id ?? basename(source, extname(source));
+  if (!isTargetFormat(format)) {
+    throw new Error(
+      `${source}: unknown format "${String(format)}". Use one of ${TARGET_FORMATS.join(", ")}.`,
+    );
+  }
+
+  const id = fontId(options);
   const buffer = await readFile(source);
   /* Everything the source font covers. The two tiers are dealt from this set,
      so a rare kanji cannot go missing by being left out of both. */
   const covered = new Set<number>(createFont(buffer).characterSet);
   const scanned =
-    scan.length > 0 ? await collectText(scan, { extensions }) : "";
+    scan.length > 0
+      ? await collect(scan, { extensions })
+      : { missing: [], text: "" };
   const isAlwaysIncluded = toPredicate(alwaysInclude);
-  const common = new Set<number>();
+  const fromScan = new Set<number>();
 
-  for (const character of `${scanned}${text}`) {
+  for (const character of scanned.text) {
+    const code = character.codePointAt(0);
+
+    if (code !== undefined && covered.has(code)) fromScan.add(code);
+  }
+
+  const common = new Set<number>(fromScan);
+
+  for (const character of text) {
     const code = character.codePointAt(0);
 
     if (code !== undefined && covered.has(code)) common.add(code);
@@ -202,16 +260,22 @@ export async function splitFont(
     css,
     cssPath,
     family,
+    scan: { characters: fromScan.size, missing: scanned.missing },
     source: { bytes: buffer.length, characters: covered.size },
     tiers,
     unicodeRange,
   };
 }
 
-/** Split several fonts, one after another. */
+/**
+ * Split several fonts, one after another. Throws before writing anything when
+ * two of them would share an id in the same directory.
+ */
 export async function splitFonts(
   fonts: SplitFontOptions[],
 ): Promise<SplitFontResult[]> {
+  assertDistinctIds(fonts);
+
   const results: SplitFontResult[] = [];
 
   for (const font of fonts) {

@@ -1,10 +1,15 @@
 import { readFile, stat } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { parseArgs } from "node:util";
+import type { Config } from "./config";
 import {
+  assertDistinctIds,
+  isTargetFormat,
   type SplitFontOptions,
   type SplitFontResult,
   splitFont,
+  TARGET_FORMATS,
 } from "./split";
 
 const CONFIG_NAMES = [
@@ -37,42 +42,52 @@ Options:
   --weight <value>      font-weight (default 400)
   --style <value>       font-style (default normal)
   --display <value>     font-display (default swap)
-  --format <value>      woff2 | woff | sfnt (default woff2)
+  --format <value>      ${TARGET_FORMATS.join(" | ")} (default woff2)
   --id <name>           filename prefix (default the font's basename)
   --no-hash             leave the content hash out of the filenames
   -h, --help            this text
 `;
 
-function parseFlags(argv: string[]): Map<string, string> {
-  const flags = new Map<string, string>();
+const OPTIONS = {
+  css: { type: "string" },
+  display: { type: "string" },
+  family: { type: "string" },
+  format: { type: "string" },
+  help: { short: "h", type: "boolean" },
+  id: { type: "string" },
+  "no-hash": { type: "boolean" },
+  "out-dir": { type: "string" },
+  "public-path": { type: "string" },
+  scan: { type: "string" },
+  source: { type: "string" },
+  style: { type: "string" },
+  text: { type: "string" },
+  weight: { type: "string" },
+} as const;
 
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index];
+type Flags = ReturnType<typeof parseFlags>["values"];
 
-    if (argument === undefined || !argument.startsWith("--")) continue;
+/** Unknown flags are an error: a typo would otherwise be ignored silently. */
+function parseFlags(argv: string[]) {
+  try {
+    return parseArgs({
+      allowPositionals: true,
+      args: argv,
+      options: OPTIONS,
+      strict: true,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
 
-    const body = argument.slice(2);
-    const equals = body.indexOf("=");
-    const name = equals === -1 ? body : body.slice(0, equals);
-    const inline = equals === -1 ? undefined : body.slice(equals + 1);
-    /* A flag either carries its value after "=" or in the next argument.
-       Anything else is a boolean flag such as --no-hash. */
-    const next = argv[index + 1];
-    const value =
-      inline ?? (next !== undefined && !next.startsWith("--") ? next : "");
-
-    if (inline === undefined && value !== "") index += 1;
-
-    flags.set(name, value);
+    throw new Error(
+      `${message}\nRun unicode-range-split --help for the options.`,
+    );
   }
-
-  return flags;
 }
 
-function fromFlags(flags: Map<string, string>): SplitFontOptions {
-  const source = flags.get("source");
-  const family = flags.get("family");
-  const outDir = flags.get("out-dir");
+function fromFlags(flags: Flags): SplitFontOptions {
+  const { family, format, source } = flags;
+  const outDir = flags["out-dir"];
 
   if (
     source === undefined ||
@@ -85,23 +100,28 @@ function fromFlags(flags: Map<string, string>): SplitFontOptions {
     throw new Error("--source, --family and --out-dir are all required");
   }
 
-  const scan = flags.get("scan");
-  const format = flags.get("format");
+  if (format !== undefined && !isTargetFormat(format)) {
+    throw new Error(
+      `--format must be one of ${TARGET_FORMATS.join(", ")}, not "${format}"`,
+    );
+  }
+
+  const scan = flags.scan;
 
   return {
-    cssPath: flags.get("css"),
-    display: flags.get("display"),
+    cssPath: flags.css,
+    display: flags.display,
     family,
-    format: format as SplitFontOptions["format"],
-    hash: !flags.has("no-hash"),
-    id: flags.get("id"),
+    format,
+    hash: flags["no-hash"] !== true,
+    id: flags.id,
     outDir,
-    publicPath: flags.get("public-path"),
+    publicPath: flags["public-path"],
     scan: scan === undefined || scan === "" ? [] : scan.split(","),
     source,
-    style: flags.get("style"),
-    text: flags.get("text"),
-    weight: flags.get("weight"),
+    style: flags.style,
+    text: flags.text,
+    weight: flags.weight,
   };
 }
 
@@ -140,10 +160,7 @@ async function loadConfig(path: string): Promise<SplitFontOptions[]> {
           ? (loaded as { default: unknown }).default
           : loaded,
       );
-  const config = value as
-    | SplitFontOptions
-    | SplitFontOptions[]
-    | { fonts: SplitFontOptions[] };
+  const config = value as Config;
 
   if (Array.isArray(config)) return config;
 
@@ -168,6 +185,21 @@ function kib(bytes: number): string {
   return `${(bytes / 1024).toFixed(0)} KiB`;
 }
 
+/** Say so when scanning found nothing: the common tier is then only the always-included set. */
+function warn(font: SplitFontOptions, { family, scan }: SplitFontResult): void {
+  const shown = (path: string): string => relative(process.cwd(), path) || ".";
+
+  for (const path of scan.missing) {
+    console.error(`warning: ${family}: scan path not found: ${shown(path)}`);
+  }
+
+  if ((font.scan?.length ?? 0) > 0 && scan.characters === 0) {
+    console.error(
+      `warning: ${family}: scanning found no characters this font covers, so the common tier holds only the always-included set`,
+    );
+  }
+}
+
 function report({ family, source, tiers }: SplitFontResult): void {
   const saved = Math.round((1 - tiers.common.bytes / source.bytes) * 100);
 
@@ -182,34 +214,43 @@ function report({ family, source, tiers }: SplitFontResult): void {
 }
 
 export async function run(argv: string[]): Promise<number> {
-  if (argv.includes("--help") || argv.includes("-h")) {
+  const { positionals, values: flags } = parseFlags(argv);
+
+  if (flags.help === true) {
     console.log(USAGE);
 
     return 0;
   }
 
-  const flags = parseFlags(argv);
-  const positional = argv.find((argument) => !argument.startsWith("--"));
-  const fonts = flags.has("source")
-    ? [compact(fromFlags(flags))]
-    : await (async (): Promise<SplitFontOptions[]> => {
-        const path = await findConfig(positional);
+  const positional = positionals[0];
+  const fonts =
+    flags.source !== undefined
+      ? [compact(fromFlags(flags))]
+      : await (async (): Promise<SplitFontOptions[]> => {
+          const path = await findConfig(positional);
 
-        if (path === null) {
-          console.error(
-            `no config found. Looked for ${CONFIG_NAMES.join(", ")} in ${process.cwd()}.\n\n${USAGE}`,
-          );
+          if (path === null) {
+            console.error(
+              `no config found. Looked for ${CONFIG_NAMES.join(", ")} in ${process.cwd()}.\n\n${USAGE}`,
+            );
 
-          return [];
-        }
+            return [];
+          }
 
-        return loadConfig(path);
-      })();
+          return loadConfig(path);
+        })();
 
   if (fonts.length === 0) return 1;
 
-  for (const font of fonts) {
-    report(await splitFont(absolute(font, process.cwd())));
+  const resolved = fonts.map((font) => absolute(font, process.cwd()));
+
+  assertDistinctIds(resolved);
+
+  for (const font of resolved) {
+    const result = await splitFont(font);
+
+    warn(font, result);
+    report(result);
   }
 
   return 0;

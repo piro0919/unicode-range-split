@@ -56,19 +56,28 @@ async function walk(
   return files;
 }
 
+export type CollectResult = {
+  /** Every scanned file's text, joined. */
+  text: string;
+  /** Paths that did not exist and were skipped. */
+  missing: string[];
+};
+
 /**
- * Read every scanned path and return the text as one string. Unreadable files
- * are skipped: a missing path should not stop a build over a font tier.
+ * Read every scanned path and report which ones were not there. Missing paths
+ * and unreadable files are skipped rather than thrown: a missing path should
+ * not stop a build over a font tier. The caller decides whether to warn.
  */
-export async function collectText(
+export async function collect(
   paths: string[],
   {
     extensions = DEFAULT_EXTENSIONS,
     ignore = DEFAULT_IGNORE,
   }: CollectOptions = {},
-): Promise<string> {
+): Promise<CollectResult> {
   const extensionSet = new Set(extensions);
   const ignoreSet = new Set(ignore);
+  const missing: string[] = [];
   let text = "";
 
   for (const path of paths) {
@@ -79,12 +88,26 @@ export async function collectText(
       () => false,
     );
 
-    if (!exists) continue;
+    if (!exists) {
+      missing.push(path);
+      continue;
+    }
 
     for (const file of await walk(path, extensionSet, ignoreSet)) {
       text += await readFile(file, "utf8").catch(() => "");
     }
   }
 
-  return text;
+  return { missing, text };
+}
+
+/**
+ * Read every scanned path and return the text as one string. Unreadable files
+ * and missing paths are skipped; use `collect` to learn which were missing.
+ */
+export async function collectText(
+  paths: string[],
+  options: CollectOptions = {},
+): Promise<string> {
+  return (await collect(paths, options)).text;
 }

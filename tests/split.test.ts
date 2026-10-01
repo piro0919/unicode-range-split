@@ -275,3 +275,76 @@ describe("splitFonts", () => {
     expect(results[1]?.tiers.common.file).toContain("two-common");
   });
 });
+
+describe("splitFonts with clashing ids", () => {
+  it("throws before writing when two fonts share an id and a directory", async () => {
+    const outDir = await out();
+    const font = {
+      alwaysInclude: ALWAYS,
+      family: "Fixture",
+      format: "sfnt" as const,
+      outDir,
+      source: SOURCE,
+      text: "abc",
+    };
+
+    await expect(
+      splitFonts([font, { ...font, family: "Other" }]),
+    ).rejects.toThrow(/Give each an "id"/);
+    expect(await readdir(outDir)).toEqual([]);
+  });
+
+  it("accepts the same source under different ids", async () => {
+    const outDir = await out();
+    const font = {
+      alwaysInclude: ALWAYS,
+      family: "Fixture",
+      format: "sfnt" as const,
+      outDir,
+      source: SOURCE,
+      text: "abc",
+    };
+
+    await splitFonts([
+      { ...font, id: "one" },
+      { ...font, id: "two" },
+    ]);
+
+    expect(await readdir(outDir)).toHaveLength(4);
+  });
+});
+
+describe("splitFont input checks", () => {
+  it("rejects an unknown format", async () => {
+    await expect(
+      splitFont({
+        family: "Fixture",
+        // @ts-expect-error a config file is not type-checked
+        format: "otf",
+        outDir: await out(),
+        source: SOURCE,
+      }),
+    ).rejects.toThrow(/unknown format "otf"/);
+  });
+
+  it("reports missing scan paths and the characters scanning found", async () => {
+    const dir = await out();
+    const copy = join(dir, "copy.md");
+
+    await writeFile(copy, "abc");
+
+    const result = await splitFont({
+      alwaysInclude: ALWAYS,
+      family: "Fixture",
+      format: "sfnt",
+      outDir: join(dir, "fonts"),
+      scan: [copy, join(dir, "gone")],
+      source: SOURCE,
+    });
+
+    expect(result.scan).toEqual({
+      characters: 3,
+      missing: [join(dir, "gone")],
+    });
+  });
+});

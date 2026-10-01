@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import { collectText } from "../src/collect";
+import { collect, collectText } from "../src/collect";
 
 let root = "";
 
@@ -39,6 +39,17 @@ describe("collectText", () => {
 
   it("skips a path that does not exist instead of failing the build", async () => {
     expect(await collectText([join(root, "gone")])).toBe("");
+  });
+
+  it("reports the paths that did not exist", async () => {
+    const result = await collect([root, join(root, "gone")]);
+
+    expect(result.missing).toEqual([join(root, "gone")]);
+    expect(result.text).toContain("surface");
+  });
+
+  it("reports nothing missing when every path exists", async () => {
+    expect((await collect([root])).missing).toEqual([]);
   });
 
   it("honours a narrower extension list", async () => {

@@ -1,5 +1,7 @@
-export type { CollectOptions } from "./collect";
-export { collectText, DEFAULT_EXTENSIONS } from "./collect";
+export type { CollectOptions, CollectResult } from "./collect";
+export { collect, collectText, DEFAULT_EXTENSIONS } from "./collect";
+export type { Config } from "./config";
+export { defineConfig } from "./config";
 export type { FaceInput, FaceUrls, FallbackFace } from "./css";
 export { buildCss, buildFallbackFace } from "./css";
 export type { AlwaysInclude } from "./ranges";
@@ -10,4 +12,4 @@ export type {
   TargetFormat,
   Tier,
 } from "./split";
-export { splitFont, splitFonts } from "./split";
+export { splitFont, splitFonts, TARGET_FORMATS } from "./split";
