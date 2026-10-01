@@ -185,7 +185,7 @@ function kib(bytes: number): string {
   return `${(bytes / 1024).toFixed(0)} KiB`;
 }
 
-/** Say so when scanning found nothing: the common tier is then only the always-included set. */
+/** Say so when scanning found nothing: the common tier then holds only `text` and the always-included set. */
 function warn(font: SplitFontOptions, { family, scan }: SplitFontResult): void {
   const shown = (path: string): string => relative(process.cwd(), path) || ".";
 
@@ -195,7 +195,7 @@ function warn(font: SplitFontOptions, { family, scan }: SplitFontResult): void {
 
   if ((font.scan?.length ?? 0) > 0 && scan.characters === 0) {
     console.error(
-      `warning: ${family}: scanning found no characters this font covers, so the common tier holds only the always-included set`,
+      `warning: ${family}: scanning found no characters this font covers; check "scan"`,
     );
   }
 }
