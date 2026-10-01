@@ -25,6 +25,9 @@
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "keywords": [
     "font",
     "subset",
@@ -50,29 +53,32 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "build:lib": "tsup",
+    "build:lib": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "demo:font": "pnpm build:lib && node scripts/demo-font.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check",
     "format": "biome format --write",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm test && pnpm build:lib"
+    "prepublishOnly": "pnpm test && pnpm build:lib",
+    "check:package": "publint --strict && attw --pack ."
   },
   "dependencies": {
     "fontkit": "^2.0.4",
     "subset-font": "^2.9.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.14",
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@biomejs/biome": "2.5.13",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.20.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vercel/analytics": "^2.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "lefthook": "^2.1.14",
-    "next": "16.3.6",
+    "lefthook": "^2.1.12",
+    "next": "16.3.4",
+    "publint": "^0.3.24",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tailwindcss": "^4.3.3",
