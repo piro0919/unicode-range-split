@@ -14,11 +14,11 @@ jobs:
         # package.json の engines (>=22) と揃える。pnpm 11 自体が 22.13 以上を要る。
         node-version: [22, 24]
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
-          version: 11.28.3
-      - uses: actions/setup-node@v4
+          version: 12.8.2
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
