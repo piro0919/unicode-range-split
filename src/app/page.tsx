@@ -207,6 +207,12 @@ export default function Home() {
           >
             GitHub
           </a>
+          <a
+            className="hover:text-emerald-300"
+            href="https://buymeacoffee.com/piro0919"
+          >
+            Buy Me a Coffee
+          </a>
           <a className="hover:text-emerald-300" href="https://kkweb.io/">
             kkweb.io
           </a>
