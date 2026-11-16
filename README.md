@@ -84,7 +84,11 @@ the import:
 
 ```js
 /** @type {import("unicode-range-split").Config} */
-export default { fonts: [/* … */] };
+export default {
+  fonts: [
+    /* … */
+  ],
+};
 ```
 
 Or describe one font in flags:
@@ -128,22 +132,22 @@ did not exist; the library skips them without complaint.
 
 ## Options
 
-| Option | Default | |
-| ---- | ---- | ---- |
-| `source` | — | the font to split |
-| `family` | — | the `font-family` the generated CSS declares |
-| `outDir` | — | where the font files are written |
-| `scan` | `[]` | files and directories to read characters from |
-| `text` | `""` | extra characters for the common tier |
-| `cssPath` | — | write the generated CSS here; it is returned either way |
-| `publicPath` | `"/fonts"` | the URL prefix the CSS points at |
-| `id` | the source's basename | filename prefix |
-| `format` | `"woff2"` | `woff2`, `woff`, `truetype` or `sfnt` (the last two both write `.ttf`) |
-| `hash` | `true` | put a content hash in the filenames |
-| `weight` `style` `display` | `400` `normal` `swap` | the descriptors |
-| `alwaysInclude` | Latin, punctuation, kana, fullwidth | codepoints kept in the common tier whatever the text says |
-| `fallback` | — | a metric-matched `local()` face |
-| `extensions` | source and content extensions | what to read inside a scanned directory |
+| Option                     | Default                             |                                                                        |
+| -------------------------- | ----------------------------------- | ---------------------------------------------------------------------- |
+| `source`                   | —                                   | the font to split                                                      |
+| `family`                   | —                                   | the `font-family` the generated CSS declares                           |
+| `outDir`                   | —                                   | where the font files are written                                       |
+| `scan`                     | `[]`                                | files and directories to read characters from                          |
+| `text`                     | `""`                                | extra characters for the common tier                                   |
+| `cssPath`                  | —                                   | write the generated CSS here; it is returned either way                |
+| `publicPath`               | `"/fonts"`                          | the URL prefix the CSS points at                                       |
+| `id`                       | the source's basename               | filename prefix                                                        |
+| `format`                   | `"woff2"`                           | `woff2`, `woff`, `truetype` or `sfnt` (the last two both write `.ttf`) |
+| `hash`                     | `true`                              | put a content hash in the filenames                                    |
+| `weight` `style` `display` | `400` `normal` `swap`               | the descriptors                                                        |
+| `alwaysInclude`            | Latin, punctuation, kana, fullwidth | codepoints kept in the common tier whatever the text says              |
+| `fallback`                 | —                                   | a metric-matched `local()` face                                        |
+| `extensions`               | source and content extensions       | what to read inside a scanned directory                                |
 
 ### `alwaysInclude`
 
@@ -155,8 +159,11 @@ and makes every ordinary page fetch it.
 Pass ranges or a predicate to decide differently:
 
 ```js
-alwaysInclude: [[0x0000, 0x20ff], [0x3000, 0x30ff]]
-alwaysInclude: (code) => code < 0x2000
+alwaysInclude: [
+  [0x0000, 0x20ff],
+  [0x3000, 0x30ff],
+];
+alwaysInclude: (code) => code < 0x2000;
 ```
 
 ### `fallback`
@@ -193,7 +200,7 @@ fallback: {
   font-style: normal;
   font-weight: 400;
   src: url("/fonts/noto-rest.6bc37b03.woff2") format("woff2");
-  unicode-range: U+4E18-4E19,U+4E32,U+4E39,/* … */;
+  unicode-range: U+4E18-4E19, U+4E32, U+4E39, /* … */;
 }
 ```
 
