@@ -64,7 +64,7 @@
     "check:package": "publint --strict && attw --pack ."
   },
   "dependencies": {
-    "fontkit": "^2.0.4",
+    "fontkit": "^3.0.0",
     "subset-font": "^2.9.0"
   },
   "devDependencies": {
