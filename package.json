@@ -72,12 +72,12 @@
     "@biomejs/biome": "2.6.9",
     "@piro0919/biome-config": "github:piro0919/biome-config#v1.1.0",
     "@tailwindcss/postcss": "^4.3.5",
-    "@types/node": "^22.20.5",
-    "@types/react": "^19.3.1",
+    "@types/node": "^22.20.7",
+    "@types/react": "^19.3.2",
     "@types/react-dom": "^19.3.0",
     "@vercel/analytics": "^2.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "lefthook": "^2.2.2",
+    "lefthook": "^2.2.3",
     "next": "16.4.6",
     "publint": "^0.3.25",
     "react": "19.3.1",
@@ -85,7 +85,7 @@
     "tailwindcss": "^4.3.5",
     "tsup": "^9.0.0",
     "typescript": "^5.9.3",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.2"
   },
   "homepage": "https://unicode-range-split.kkweb.io/"
 }
